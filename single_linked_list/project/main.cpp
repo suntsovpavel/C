@@ -239,15 +239,15 @@ int main()
         {
             Cell cell(2,3);
             cout <<"try find element "<<cell<<endl;
-            const Node<Cell>* finded = listCell.find(cell);
-            if (finded == nullptr) cout << "element "<<cell<<" is not found"<<endl;
+            const Node<Cell>* elem = listCell.find(cell);
+            if (elem == nullptr) cout << "element "<<cell<<" is not found"<<endl;
             else  cout << "element "<<cell<<" is found"<<endl;
         }
         {
             Cell cell(6,7);
             cout <<"try find element "<<cell<<endl;
-            const Node<Cell>* finded = listCell.find(cell);
-            if (finded == nullptr) cout << "element "<<cell<<" is not found"<<endl;
+            const Node<Cell>* elem = listCell.find(cell);
+            if (elem == nullptr) cout << "element "<<cell<<" is not found"<<endl;
             else  cout << "element "<<cell<<" is found"<<endl;
         }
     }
