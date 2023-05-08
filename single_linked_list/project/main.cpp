@@ -1,6 +1,112 @@
-#include <iostream>
-#include <math.h>
+#include "List.h"
+
 using namespace std;
+
+//Список не годится для стандартных типов, для double приходится писать свой класс
+class MyDouble {
+    double d;
+public:
+    double get()const { return d; }
+    MyDouble(const double _d) : d(_d){}
+    void clear(){}
+    bool operator==(const MyDouble& other){ return fabs(d-other.d) < 1.e-7; }
+    bool operator!=(const MyDouble& other){ return !(*this==other); }
+    friend std::ostream& operator<< (std::ostream &out, const MyDouble &);
+};
+std::ostream& operator<< (std::ostream &out, const MyDouble & obj){
+    out << obj.d;
+    return out;
+}
+
+class Cell {
+    int x, y;
+public:
+    int get_x()const { return x; }
+    int get_y()const { return y; }
+    Cell(const int _x, const int _y) :x(_x), y(_y){}
+    void clear(){}
+    bool operator==(const Cell& other){ return x==other.x && y==other.y; }
+    bool operator!=(const Cell& other){ return !(*this==other); }
+    friend std::ostream& operator<< (std::ostream &out, const Cell &);
+};
+std::ostream& operator<< (std::ostream &out, const Cell & obj){
+    out << "(" << obj.x << "," << obj.y << ")";
+    return out;
+}
+
+int main()
+{
+    //1. using class MyDouble
+    {
+        cout << "--- test class MyDouble ---"<<endl;
+        List<MyDouble> list({3, 12.3, 14.});
+        list.push(list[list.getLen()-1]->t.get() + list[list.getLen()-2]->t.get());
+        list.print(cout);
+
+        double value = 12.3;        
+        cout << "try remove "<<value<<" ..."<<endl;
+        switch(list.remove(value)){
+        case 0: cout << "element "<<value<<" is removed"<<endl; break;
+        case 1: cout << "list is empty"<<endl;   break;
+        case 2: cout << "element "<<value<<" not found"<<endl;
+        }
+
+        value = 123.;
+        cout << "try remove "<<value<<" ..."<<endl;
+        switch(list.remove(value)){
+        case 0: cout << "element "<<value<<" is removed"<<endl; break;
+        case 1: cout << "list is empty"<<endl;   break;
+        case 2: cout << "element "<<value<<" not found"<<endl;
+        }
+
+        list.push(value); cout << "push_back value "<<value<<endl;
+        list.print(cout);
+
+        cout << "try remove first..."<<endl;
+        if(!list.removeFirst()) cout << "list is empty, nothing to remove"<<endl;
+        else cout << "first element is removed"<<endl;
+        list.print(cout);
+
+        cout << "try remove last..."<<endl;
+        if(!list.removeLast()) cout << "list is empty, nothing to remove"<<endl;
+        else cout << "last element is removed"<<endl;
+        list.print(cout);
+
+        cout << "try get [0]..."<<endl;
+        const Node<MyDouble>* item = list[0];
+        if (item == nullptr) cout << "returned nullptr"<<endl;
+        else cout << "list[0] = "<<item->t<<endl;
+    }
+
+    //2. using class Cell
+    {
+        cout << "--- test class Cell ---"<<endl;
+        List<Cell> list({Cell(2,3), Cell(4,5)});
+        list.print(cout);
+
+        cout << "try get [0]..."<<endl;
+        const Node<Cell>* item = list[0];
+        if (item == nullptr) cout << "returned nullptr"<<endl;
+        else cout << "list[0] = "<<item->t<<endl;
+        {
+            Cell cell(2,3);
+            cout <<"try find element "<<cell<<endl;
+            const Node<Cell>* elem = list.find(cell);
+            if (elem == nullptr) cout << "element "<<cell<<" is not found"<<endl;
+            else  cout << "element "<<cell<<" is found"<<endl;
+        }
+        {
+            Cell cell(6,7);
+            cout <<"try find element "<<cell<<endl;
+            const Node<Cell>* elem = list.find(cell);
+            if (elem == nullptr) cout << "element "<<cell<<" is not found"<<endl;
+            else  cout << "element "<<cell<<" is found"<<endl;
+        }
+    }
+    cout << "ok"<<endl;
+    return 0;
+}
+
 
 /*
 // https://habr.com/ru/articles/205772/, see comments...
@@ -32,225 +138,3 @@ int main()
     std::cout << has_foo<Q3>::value << std::endl;
 }
 */
-
-
-//класс T должен реализовать методы:
-// - очистки ресурсов void clear()
-// - сравнения bool isEqual(const T&)
-// - оператор вывода содержимого в поток ostream& operator<<
-
-template<typename T>
-struct Node {
-    T t;
-    Node* next;
-    Node(const T& _t) : t(_t), next(nullptr) {}
-};
-
-template<typename T>
-class list {
-    Node<T>* first;
-    Node<T>* last;
-public:
-    list() : first(nullptr), last(nullptr) {}
-    ~list(){
-        while(!is_empty())
-            remove_last();
-    }
-
-    bool is_empty() {
-        return first == nullptr;
-    }
-
-    void push_back(const T& _t) {
-        Node<T>* p = new Node<T>(_t);
-        if (is_empty()) {
-            first = p;
-            last = p;
-            return;
-        }
-        last->next = p;
-        last = p;
-    }
-
-    void print(const string delimiter=",",
-               const bool isEndl = false) {
-        if (is_empty()) return;
-        Node<T>* p = first;
-        cout <<"list content: ";
-        while (p) {
-            cout << p->t;
-            if(p != last) cout << delimiter;
-            if(isEndl) cout<<endl;
-            p = p->next;
-        }
-        cout << endl;
-    }
-
-    const Node<T>* find(const T& _t) {
-        Node<T>* p = first;
-        while (p && !p->t.isEqual(_t)){
-            p = p->next;
-        }
-        return p? p : nullptr;  //return (p && p->t.isEqual(_t)) ? p : nullptr;
-    }
-
-    //return false, if list is empty
-    bool remove_first() {
-        if (is_empty()) return false;
-        Node<T>* p = first;
-        first = p->next;
-        p->t.clear();
-        delete p;
-        return true;
-    }
-
-    //return false, if list is empty
-    bool remove_last() {
-        if (is_empty()) return false;
-        if (first == last) {
-            remove_first();
-            return true;
-        }
-        Node<T>* p = first;
-        while (p->next != last) p = p->next;
-        p->next = nullptr;
-        last->t.clear();
-        delete last;
-        last = p;
-        return true;
-    }
-
-    //0: Элемент найден и удален
-    //1: Список пуст
-    //2: элемент не найден
-    int remove(const T& _t) {
-        if (is_empty()) return 1;
-        if (first->t.isEqual(_t)) {
-            remove_first();
-            return 0;
-        }
-        if (last->t.isEqual(_t)) {
-            remove_last();
-            return 0;
-        }
-        Node<T>* slow = first;
-        Node<T>* fast = first->next;
-        while (fast && !fast->t.isEqual(_t)) {
-            fast = fast->next;
-            slow = slow->next;
-        }
-        if (!fast) return 2;
-        slow->next = fast->next;
-        fast->t.clear();
-        delete fast;
-        return 0;
-    }
-
-    const Node<T>* operator[] (const size_t index) {
-        if (is_empty()) return nullptr;
-        Node<T>* p = first;
-        for (size_t i = 0; i < index; i++) {
-            p = p->next;
-            if (!p) return nullptr;
-        }
-        return p;
-    }
-};
-
-
-class MyDouble {
-    double d;
-public:
-    double get()const { return d; }
-    MyDouble(const double _d) : d(_d){}
-    void clear(){}
-    bool isEqual(const MyDouble& other){ return fabs(d-other.d) < 1.e-7; }
-    friend std::ostream& operator<< (std::ostream &out, const MyDouble &);
-};
-std::ostream& operator<< (std::ostream &out, const MyDouble & obj){
-    out << obj.d;
-    return out;
-}
-
-class Cell {
-    int x, y;
-public:
-    int get_x()const { return x; }
-    int get_y()const { return y; }
-    Cell(const int _x, const int _y) :x(_x), y(_y){}
-    void clear(){}
-    bool isEqual(const Cell& other){ return x==other.x && y==other.y; }
-    friend std::ostream& operator<< (std::ostream &out, const Cell &);
-};
-std::ostream& operator<< (std::ostream &out, const Cell & obj){
-    out << "(" << obj.x << "," << obj.y << ")";
-    return out;
-}
-
-int main()
-{
-    //1. using class MyDouble
-    {
-        list<MyDouble> listDbl;
-        cout << "is empty: " << listDbl.is_empty() << endl;
-        listDbl.push_back(3); cout << "push_back value 3"<<endl;
-        listDbl.push_back(12.3); cout << "push_back value 12.3"<<endl;
-        listDbl.push_back(listDbl[0]->t.get() + listDbl[1]->t.get()); cout << "push_back sum previous two"<<endl;
-        listDbl.print();
-        cout << "is empty: " << listDbl.is_empty() << endl;
-        double value = 12.3;
-        cout << "try remove "<<value<<" ..."<<endl;
-        int flag = listDbl.remove(value);
-        if(flag==1) cout << "list is empty"<<endl;
-        else if(flag==2) cout << "element "<<value<<" not found"<<endl;
-        else cout << "element "<<value<<" is removed"<<endl;
-        value = 123.;
-        flag = listDbl.remove(value);
-        if(flag==1) cout << "list is empty"<<endl;
-        else if(flag==2) cout << "element "<<value<<" not found"<<endl;
-        else cout << "element "<<value<<" is removed"<<endl;
-        listDbl.print();
-        value = 123.;
-        listDbl.push_back(123.); cout << "push_back value "<<value<<endl;
-        cout << "try remove first..."<<endl;
-        if(!listDbl.remove_first()) cout << "list is empty, nothing to remove"<<endl;
-        else cout << "first element is removed"<<endl;
-        listDbl.print();
-        cout << "try remove last..."<<endl;
-        if(!listDbl.remove_last()) cout << "list is empty, nothing to remove"<<endl;
-        else cout << "last element is removed"<<endl;
-        listDbl.print();
-        cout << "try get [0]..."<<endl;
-        const Node<MyDouble>* item = listDbl[0];
-        if (item == nullptr) cout << "returned nullptr"<<endl;
-        else cout << "list[0] = "<<item->t<<endl;
-    }
-
-    //2. using class Cell
-    {
-        list<Cell> listCell;
-        listCell.push_back(Cell(2,3)); cout << "push_back Cell(2,3)"<<endl;
-        listCell.push_back(Cell(4,5)); cout << "push_back Cell(4,5)"<<endl;
-        listCell.print();
-        cout << "try get [0]..."<<endl;
-        const Node<Cell>* item = listCell[0];
-        if (item == nullptr) cout << "returned nullptr"<<endl;
-        else cout << "list[0] = "<<item->t<<endl;
-        {
-            Cell cell(2,3);
-            cout <<"try find element "<<cell<<endl;
-            const Node<Cell>* elem = listCell.find(cell);
-            if (elem == nullptr) cout << "element "<<cell<<" is not found"<<endl;
-            else  cout << "element "<<cell<<" is found"<<endl;
-        }
-        {
-            Cell cell(6,7);
-            cout <<"try find element "<<cell<<endl;
-            const Node<Cell>* elem = listCell.find(cell);
-            if (elem == nullptr) cout << "element "<<cell<<" is not found"<<endl;
-            else  cout << "element "<<cell<<" is found"<<endl;
-        }
-    }
-    cout << "ok"<<endl;
-    return 0;
-}
